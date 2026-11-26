@@ -13,7 +13,7 @@ OpenWrt integration for [VidBee](https://github.com/nexmoe/VidBee).
 
 ### 安装与启动
 
-后端的初始目标是 OpenWrt 25.12、`mediatek/filogic`（如 RAX3000M）。APK 包含配套的 ARM64 Node.js 和 SQLite 模块，下载工具由 OpenWrt 软件源提供。当前构建省略本地转录运行库，yt-dlp 通过 OpenWrt 软件包更新。
+后端的初始目标是 OpenWrt 25.12、`mediatek/filogic`（如 RAX3000M）。APK 包含配套的 ARM64 Node.js 和 SQLite 模块，下载工具由 OpenWrt 软件源提供。首版 APK 约 51 MiB，解包后约 153 MiB，另计下载工具和媒体文件。当前构建省略本地转录运行库，yt-dlp 通过 OpenWrt 软件包更新。
 
 安装 `vidbee` APK 后，编辑 `/etc/config/vidbee`，将 `data_dir` 和 `download_dir` 设为有足够空间的目录，再启用服务。新目录由服务创建，已有目录需允许 `vidbee` 用户读写。默认同时下载一个任务。
 
@@ -49,7 +49,7 @@ make package/vidbee/compile package/luci-app-vidbee/compile
 
 ### Installation and startup
 
-The backend initially targets OpenWrt 25.12 on `mediatek/filogic`, including the RAX3000M. The APK ships compatible ARM64 Node.js and SQLite binaries and uses the OpenWrt feed for download tools. This build omits the local transcription runtime. Update yt-dlp through the OpenWrt package manager.
+The backend initially targets OpenWrt 25.12 on `mediatek/filogic`, including the RAX3000M. The APK ships compatible ARM64 Node.js and SQLite binaries and uses the OpenWrt feed for download tools. The first APK is about 51 MiB and unpacks to about 153 MiB before download tools and media files. This build omits the local transcription runtime. Update yt-dlp through the OpenWrt package manager.
 
 After installing the backend APK, set `data_dir` and `download_dir` in `/etc/config/vidbee` to locations with enough space and enable the service. The service creates new directories. Existing directories must be writable by the `vidbee` user. The default is one concurrent download.
 

@@ -59,7 +59,7 @@ jobs:
           # CONFIG_ALL_NONSHARED is not set
           # CONFIG_ALL_KMODS is not set
           CONFIG_PACKAGE_luci-app-vidbee=m
-          CONFIG_PACKAGE_luci-i18n-vidbee-zh-cn=m
+          CONFIG_LUCI_LANG_zh_Hans=y
           CONFIG_PACKAGE_vidbee=m
           EOF
           make defconfig

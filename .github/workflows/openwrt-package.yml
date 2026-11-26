@@ -1,4 +1,4 @@
-name: Build OpenWrt package
+name: Build OpenWrt packages
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       SDK_ARCHIVE: openwrt-sdk-25.12.5-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst
       SDK_SHA256: ff4a38a397caa2cfe1c39e18f84ddede14878221b3593c3f2c4cfe24e3ec4c25
     steps:
-      - name: Check out VidBee LuCI package
+      - name: Check out VidBee packages
         uses: actions/checkout@v4
         with:
           path: vidbee
@@ -32,7 +32,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang flex gawk gettext \
-            git libncurses-dev libssl-dev python3 rsync unzip zlib1g-dev zstd
+            git libncurses-dev libssl-dev patchelf python3 rsync unzip zlib1g-dev zstd
 
       - name: Download and verify OpenWrt SDK
         run: |
@@ -42,29 +42,39 @@ jobs:
           mkdir sdk
           tar --zstd -xf "${SDK_ARCHIVE}" --directory sdk --strip-components=1
 
-      - name: Install LuCI feed and package source
+      - name: Install feeds and package sources
         run: |
           cd sdk
-          ./scripts/feeds update luci
-          ./scripts/feeds install -p luci luci-base
+          ./scripts/feeds update base luci packages
+          ./scripts/feeds install ca-bundle luci-base yt-dlp ffmpeg ffprobe
           mkdir -p package/luci-app-vidbee
-          tar --exclude=.git -C ../vidbee -cf - . | tar -C package/luci-app-vidbee -xf -
+          cp -a ../vidbee/Makefile ../vidbee/htdocs ../vidbee/po ../vidbee/root package/luci-app-vidbee/
+          cp -a ../vidbee/packages/vidbee package/vidbee
 
-      - name: Build package
+      - name: Build packages
         run: |
           cd sdk
+          cat > .config <<'EOF'
+          # CONFIG_ALL is not set
+          # CONFIG_ALL_NONSHARED is not set
+          # CONFIG_ALL_KMODS is not set
+          CONFIG_PACKAGE_luci-app-vidbee=m
+          CONFIG_PACKAGE_luci-i18n-vidbee-zh-cn=m
+          CONFIG_PACKAGE_vidbee=m
+          EOF
           make defconfig
-          make package/luci-app-vidbee/compile V=s
+          make -j"$(nproc)" package/luci-app-vidbee/compile package/vidbee/compile V=s
           mkdir -p ../dist
           find bin/packages -type f \
-            \( -name 'luci-app-vidbee*.apk' -o -name 'luci-app-vidbee*.ipk' \) \
+            \( -name 'luci-app-vidbee-*.apk' -o -name 'luci-i18n-vidbee-*.apk' -o -name 'vidbee-*.apk' \) \
             -exec cp -v {} ../dist/ \;
-          test -n "$(find ../dist -maxdepth 1 -type f -name 'luci-app-vidbee*' -print -quit)"
+          test -n "$(find ../dist -maxdepth 1 -type f -name 'luci-app-vidbee-*.apk' -print -quit)"
+          test -n "$(find ../dist -maxdepth 1 -type f -name 'vidbee-*.apk' -print -quit)"
 
-      - name: Upload install package
+      - name: Upload install packages
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-vidbee-openwrt-25.12-mediatek-filogic
-          path: dist/luci-app-vidbee*
+          name: vidbee-openwrt-25.12-mediatek-filogic
+          path: dist/*.apk
           if-no-files-found: error
           retention-days: 30

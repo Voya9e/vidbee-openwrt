@@ -2,58 +2,83 @@
 
 OpenWrt integration for [VidBee](https://github.com/nexmoe/VidBee).
 
-简体中文 | [English](#english)
+[简体中文](#简体中文) | [English](#english)
 
 ## 简体中文
 
-本仓库用于将 VidBee 接入 OpenWrt。目前提供 `luci-app-vidbee`，在 LuCI 的 **服务 → VidBee** 中嵌入 VidBee Web，并提供在新标签页打开的入口。当前版本需要单独部署和启动 VidBee Web 与 API。
+| 软件包 | 用途 |
+| --- | --- |
+| `vidbee` | 在 OpenWrt 原生运行 VidBee API 和官方 Web，用于管理下载。 |
+| `luci-app-vidbee` | 在 LuCI 的 **服务 → VidBee** 提供 Web 入口。也可连接单独部署的 VidBee。 |
 
-后续计划新增 `vidbee` 软件包，将 API、官方 Web 和服务启动脚本打包到 OpenWrt。届时 `luci-app-vidbee` 负责服务配置和 Web 入口，下载任务由官方 Web 管理。
+### 安装与启动
 
-### 要求
+后端的初始目标是 OpenWrt 25.12、`mediatek/filogic`（如 RAX3000M）。APK 包含配套的 ARM64 Node.js 和 SQLite 模块，下载工具由 OpenWrt 软件源提供。当前构建省略本地转录运行库，yt-dlp 通过 OpenWrt 软件包更新。
 
-- 已安装 LuCI 的 OpenWrt
-- VidBee Web UI 可通过路由器主机名的 **3000** 端口访问
-- VidBee Web 服务允许被 LuCI 页面嵌入
+安装 `vidbee` APK 后，编辑 `/etc/config/vidbee`，将 `data_dir` 和 `download_dir` 设为有足够空间的目录，再启用服务。新目录由服务创建，已有目录需允许 `vidbee` 用户读写。默认同时下载一个任务。
 
-入口根据当前 LuCI 页面使用的主机名和协议生成 VidBee 地址。若 VidBee 使用其他主机或端口，请修改 `htdocs/luci-static/resources/view/vidbee.js`。如果服务设置了禁止嵌入的 frame 策略，可使用页面上的新标签页按钮。
+```sh
+uci set vidbee.main.enabled='1'
+uci commit vidbee
+/etc/init.d/vidbee enable
+/etc/init.d/vidbee start
+```
+
+默认 Web 入口为 `http://路由器地址:3000`，API 只监听本机。Web 没有独立登录页，请在可信局域网使用。LuCI 插件仍使用当前页面的主机名和协议访问 3000 端口，服务配置目前通过 UCI 操作。
 
 ### 构建
 
-在已安装 LuCI feed 的 OpenWrt 构建树根目录中，将仓库克隆到软件包目录，并编译当前的 LuCI 插件。
+使用 OpenWrt 25.12 Filogic SDK 或对应的固件构建树。构建主机需要 Python 3.12 和 `patchelf`。构建过程从 GHCR 下载固定摘要的官方 ARM64 镜像层并校验 SHA-256。将仓库的 `packages/vidbee` 复制为构建树的 `package/vidbee`，将根目录的 `Makefile`、`htdocs`、`po`、`root` 复制到 `package/luci-app-vidbee`。
 
 ```sh
-git clone https://github.com/Voya9e/vidbee-openwrt.git package/luci-app-vidbee
-make package/luci-app-vidbee/compile
+./scripts/feeds update base luci packages # 使用完整固件源码时去掉 base
+./scripts/feeds install ca-bundle luci-base yt-dlp ffmpeg ffprobe
+printf '%s\n' 'CONFIG_PACKAGE_vidbee=m' 'CONFIG_PACKAGE_luci-app-vidbee=m' >> .config
+make defconfig
+make package/vidbee/compile package/luci-app-vidbee/compile
 ```
 
-安装生成的软件包（APK 或 IPK，取决于 OpenWrt 版本），然后通过 LuCI 的 **服务 → VidBee** 打开已部署的 VidBee Web。
-
-简体中文界面翻译位于 `po/zh_Hans/vidbee.po`。LuCI 选择简体中文时显示中文；其他语言默认显示英文。
+编译固件时可分别将两个包设为 `y`。GitHub Actions 使用同一套 SDK 构建可安装的 APK。
 
 ## English
 
-This repository integrates VidBee with OpenWrt. It currently provides `luci-app-vidbee`, which embeds VidBee Web under **Services → VidBee** in LuCI and offers a shortcut to open it in a new tab. The current version requires a separately deployed and running VidBee Web UI and API.
+| Package | Purpose |
+| --- | --- |
+| `vidbee` | Runs the upstream API and Web UI natively on OpenWrt for managing downloads. |
+| `luci-app-vidbee` | Opens VidBee Web from **Services → VidBee** in LuCI. It also works with a separately deployed VidBee service. |
 
-The planned `vidbee` package will bundle the API, official Web UI, and service startup scripts for OpenWrt. `luci-app-vidbee` will handle service configuration and link to the Web UI, where you manage downloads.
+### Installation and startup
 
-### Requirements
+The backend initially targets OpenWrt 25.12 on `mediatek/filogic`, including the RAX3000M. The APK ships compatible ARM64 Node.js and SQLite binaries and uses the OpenWrt feed for download tools. This build omits the local transcription runtime. Update yt-dlp through the OpenWrt package manager.
 
-- OpenWrt with LuCI
-- VidBee Web UI reachable on port **3000** using the router's hostname
-- VidBee's web service allows embedding in a frame
+After installing the backend APK, set `data_dir` and `download_dir` in `/etc/config/vidbee` to locations with enough space and enable the service. The service creates new directories. Existing directories must be writable by the `vidbee` user. The default is one concurrent download.
 
-The entry builds the VidBee URL from the hostname and protocol used by the current LuCI page. If VidBee uses another host or port, edit `htdocs/luci-static/resources/view/vidbee.js`. Use the new-tab button if the service's frame policy prevents embedding.
+```sh
+uci set vidbee.main.enabled='1'
+uci commit vidbee
+/etc/init.d/vidbee enable
+/etc/init.d/vidbee start
+```
+
+The default Web URL is `http://<router-address>:3000`. The API listens on loopback. Use the Web UI on a trusted LAN, as it has no separate login. The LuCI shortcut uses the current hostname and protocol on port 3000. Manage service settings through UCI.
 
 ### Build
 
-From the root of an OpenWrt build tree with the LuCI feed installed, clone the repository into the package directory and build the current LuCI app.
+Use the OpenWrt 25.12 Filogic SDK or a matching firmware build tree. Install Python 3.12 and `patchelf` on the build host. The build verifies the SHA-256 digest of each pinned ARM64 image layer fetched from GHCR. Copy `packages/vidbee` to `package/vidbee` and copy the repository root's `Makefile`, `htdocs`, `po` and `root` to `package/luci-app-vidbee`.
 
 ```sh
-git clone https://github.com/Voya9e/vidbee-openwrt.git package/luci-app-vidbee
-make package/luci-app-vidbee/compile
+./scripts/feeds update base luci packages # Omit base in a full firmware source tree
+./scripts/feeds install ca-bundle luci-base yt-dlp ffmpeg ffprobe
+printf '%s\n' 'CONFIG_PACKAGE_vidbee=m' 'CONFIG_PACKAGE_luci-app-vidbee=m' >> .config
+make defconfig
+make package/vidbee/compile package/luci-app-vidbee/compile
 ```
 
-Install the resulting package (APK or IPK, depending on your OpenWrt version), then open the deployed VidBee Web UI from **Services → VidBee** in LuCI.
+Select either package with `y` when building it into a firmware image. GitHub Actions uses the same SDK to build installable APKs.
 
-Simplified Chinese translations are in `po/zh_Hans/vidbee.po`. LuCI uses them when Simplified Chinese is selected and falls back to the English source strings.
+### Upstream sources
+
+- [VidBee API and Web source revision](https://github.com/nexmoe/VidBee/tree/438e4733ec557b8a8e529342f2bddb3d91c4a573)
+- [Node.js v22.23.5 source](https://github.com/nodejs/node/tree/v22.23.5) and [Alpine-based build recipes](https://github.com/nodejs/docker-node)
+- Alpine build recipes for [musl 1.2.6-r3](https://gitlab.alpinelinux.org/alpine/aports/-/tree/8f79d39391b46d6dbf1800fb68b8212a21d5ee2e/main/musl) and [GCC runtime 15.2.0-r5](https://gitlab.alpinelinux.org/alpine/aports/-/tree/423a8ad043d07f2c7546c8ec3e2b0384cda360ae/main/gcc)
+- [better-sqlite3 v13.0.3 source](https://github.com/WiseLibs/better-sqlite3/tree/v13.0.3)

@@ -1,12 +1,14 @@
-# luci-app-vidbee
+# vidbee-openwrt
 
-A lightweight bilingual LuCI entry for the VidBee Web UI. It adds **Services → VidBee**, embeds the VidBee interface, and provides a new-tab shortcut. VidBee itself must be installed and run separately.
+OpenWrt integration for [VidBee](https://github.com/nexmoe/VidBee).
 
 简体中文 | [English](#english)
 
 ## 简体中文
 
-这是一个轻量级的 VidBee LuCI 入口插件，在 LuCI 的 **服务 → VidBee** 中嵌入 VidBee 界面，并提供新标签页打开入口。VidBee 本体及 API 需单独部署和启动。
+本仓库用于将 VidBee 接入 OpenWrt。目前提供 `luci-app-vidbee`，在 LuCI 的 **服务 → VidBee** 中嵌入 VidBee Web，并提供在新标签页打开的入口。当前版本需要单独部署和启动 VidBee Web 与 API。
+
+后续计划新增 `vidbee` 软件包，将 API、官方 Web 和服务启动脚本打包到 OpenWrt。届时 `luci-app-vidbee` 负责服务配置和 Web 入口，下载任务由官方 Web 管理。
 
 ### 要求
 
@@ -18,19 +20,22 @@ A lightweight bilingual LuCI entry for the VidBee Web UI. It adds **Services →
 
 ### 构建
 
-将本目录放到 OpenWrt 构建树的 `package/luci-app-vidbee`，并确保已安装 LuCI feed：
+在已安装 LuCI feed 的 OpenWrt 构建树根目录中，将仓库克隆到软件包目录，并编译当前的 LuCI 插件。
 
 ```sh
+git clone https://github.com/Voya9e/vidbee-openwrt.git package/luci-app-vidbee
 make package/luci-app-vidbee/compile
 ```
 
-安装生成的 IPK。此入口包不包含或启动 VidBee 服务，也不需要 Node.js 或 SQLite 运行依赖。
+安装生成的软件包（APK 或 IPK，取决于 OpenWrt 版本），然后通过 LuCI 的 **服务 → VidBee** 打开已部署的 VidBee Web。
 
 简体中文界面翻译位于 `po/zh_Hans/vidbee.po`。LuCI 选择简体中文时显示中文；其他语言默认显示英文。
 
 ## English
 
-This package adds a lightweight **Services → VidBee** entry to LuCI. It embeds the VidBee interface and provides a shortcut to open it in a new tab. The VidBee application and API must be deployed and started separately.
+This repository integrates VidBee with OpenWrt. It currently provides `luci-app-vidbee`, which embeds VidBee Web under **Services → VidBee** in LuCI and offers a shortcut to open it in a new tab. The current version requires a separately deployed and running VidBee Web UI and API.
+
+The planned `vidbee` package will bundle the API, official Web UI, and service startup scripts for OpenWrt. `luci-app-vidbee` will handle service configuration and link to the Web UI, where you manage downloads.
 
 ### Requirements
 
@@ -42,12 +47,13 @@ The entry builds the VidBee URL from the hostname and protocol used by the curre
 
 ### Build
 
-Place this directory at `package/luci-app-vidbee` in an OpenWrt build tree with the LuCI feed installed, then run:
+From the root of an OpenWrt build tree with the LuCI feed installed, clone the repository into the package directory and build the current LuCI app.
 
 ```sh
+git clone https://github.com/Voya9e/vidbee-openwrt.git package/luci-app-vidbee
 make package/luci-app-vidbee/compile
 ```
 
-Install the resulting IPK. This entry package does not include or start the VidBee service and has no Node.js or SQLite runtime dependency.
+Install the resulting package (APK or IPK, depending on your OpenWrt version), then open the deployed VidBee Web UI from **Services → VidBee** in LuCI.
 
-Simplified Chinese translations are in `po/zh_Hans/vidbee.po`. LuCI uses them when Simplified Chinese is selected; English source strings are the fallback.
+Simplified Chinese translations are in `po/zh_Hans/vidbee.po`. LuCI uses them when Simplified Chinese is selected and falls back to the English source strings.
